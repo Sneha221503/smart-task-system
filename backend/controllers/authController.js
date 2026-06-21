@@ -140,35 +140,9 @@ const forgotPassword = async (req, res) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: "🔐 SmartFlow - Password Reset Request",
-        message: `You requested a password reset.\n\nYour Reset Token: ${resetToken}\n\nGo to: ${resetUrl}\n\nThis token expires in 1 hour.`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; background: #f9f9f9; padding: 30px; border-radius: 10px;">
-            <h2 style="color: #6c63ff; text-align: center;">🔐 SmartFlow Password Reset</h2>
-            <p style="color: #333;">You requested a password reset. Use the button or token below.</p>
-            
-            <div style="text-align: center; margin: 20px 0;">
-              <a href="${resetUrl}" 
-                 style="background: #6c63ff; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                Reset Password
-              </a>
-            </div>
-            
-            <p style="color: #555; font-size: 13px; text-align: center;">
-              <strong>Button काम नाही केली? (localhost वर आहात?)</strong><br/>
-              खालील token copy करा आणि app मध्ये paste करा:
-            </p>
-            
-            <div style="background: #1a1a2e; color: #a78bfa; padding: 15px; border-radius: 8px; text-align: center; font-family: monospace; font-size: 13px; word-break: break-all; margin: 10px 0;">
-              ${resetToken}
-            </div>
-            
-            <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">
-              ⏳ हा token <strong>1 तास</strong> valid राहील.<br/>
-              तुम्ही request केली नसेल तर हा email ignore करा.
-            </p>
-          </div>
-        `
+        subject: "Password Reset Token",
+        message: `You requested a password reset.\n\nClick the link below to reset your password:\n\n${resetUrl}\n\nThis link expires in 1 hour.`,
+        html: `<p>You requested a password reset.</p><p>Click this <a href="${resetUrl}">link</a> to reset your password.</p><p>This link expires in 1 hour.</p>`
       });
       res.status(200).json({ message: "Email sent!" });
     } catch (err) {
