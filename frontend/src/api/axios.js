@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+let baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+if (baseURL && !baseURL.endsWith('/api')) {
+  baseURL = baseURL.endsWith('/') ? `${baseURL}api` : `${baseURL}/api`;
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL,
 });
 
 // Every request ला automatically token attach करतो
