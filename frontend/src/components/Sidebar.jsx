@@ -72,7 +72,7 @@ const Sidebar = ({ activeFilter, onFilterChange, stats }) => {
           </div>
         </div>
         <button className="btn btn-ghost btn-full" onClick={handleLogout}>
-          🚪 Logout
+          🚪 LogOut
         </button>
       </div>
     </aside>
