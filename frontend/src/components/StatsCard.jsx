@@ -1,6 +1,6 @@
 const STATS = [
   { key: 'total',       label: 'Total Tasks',  icon: '📌', color: 'purple' },
-  { key: 'todo',        label: 'To Do',        icon: '🔵', color: 'blue'   },
+  { key: 'todo',        label: 'To do',        icon: '🔵', color: 'blue'   },
   { key: 'in_progress', label: 'In Progress',  icon: '⚡', color: 'yellow' },
   { key: 'done',        label: 'Completed',    icon: '✅', color: 'green'  },
   { key: 'overdue',     label: 'Overdue',      icon: '🔥', color: 'red'    },
