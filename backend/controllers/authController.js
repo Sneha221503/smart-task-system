@@ -123,12 +123,9 @@ const forgotPassword = async (req, res) => {
     // Hash token for saving in DB (security best practice)
     const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
     
-    // Set expiry to 1 hour from now
-    const expiryTime = new Date(Date.now() + 60 * 60 * 1000);
-
     await pool.query(
-      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE id = $3",
-      [resetTokenHash, expiryTime, user.id]
+      "UPDATE users SET reset_password_token = $1, reset_password_expires = NOW() + INTERVAL '1 hour' WHERE id = $2",
+      [resetTokenHash, user.id]
     );
 
     // Create reset URL
