@@ -168,15 +168,31 @@ const resetPassword = async (req, res) => {
     const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
     const userResult = await pool.query(
-      "SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
+      "SELECT * FROM users WHERE reset_password_token = $1",
       [resetTokenHash]
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(400).json({ message: "Invalid or expired token." });
+      return res.status(400).json({ message: "Invalid token. The token hash did not match any user in the database." });
     }
 
     const user = userResult.rows[0];
+
+    // Now check if it's expired
+    const expiredCheck = await pool.query(
+      "SELECT * FROM users WHERE id = $1 AND reset_password_expires > NOW()",
+      [user.id]
+    );
+
+    if (expiredCheck.rows.length === 0) {
+      return res.status(400).json({ 
+        message: "Token has expired.", 
+        details: { 
+          currentTime: new Date().toISOString(), 
+          expiryTime: user.reset_password_expires 
+        }
+      });
+    }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
