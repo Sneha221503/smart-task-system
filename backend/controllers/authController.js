@@ -118,19 +118,31 @@ const forgotPassword = async (req, res) => {
     }
 
     const user = userResult.rows[0];
+    // Use hex token (URL-safe, no special characters)
     const resetToken = crypto.randomBytes(32).toString("hex");
     
-    // Hash token for saving in DB (security best practice)
+    // Hash token before saving in DB
     const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
     
+    console.log("[ForgotPassword] Generated token:", resetToken);
+    console.log("[ForgotPassword] Token hash to save:", resetTokenHash);
+
     await pool.query(
       "UPDATE users SET reset_password_token = $1, reset_password_expires = NOW() + INTERVAL '1 hour' WHERE id = $2",
       [resetTokenHash, user.id]
     );
 
-    // Create reset URL
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Verify it was saved
+    const verifyResult = await pool.query(
+      "SELECT reset_password_token FROM users WHERE id = $1",
+      [user.id]
+    );
+    console.log("[ForgotPassword] Token saved in DB:", verifyResult.rows[0]?.reset_password_token);
+
+    // Create reset URL (token is hex so URL-safe)
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+    console.log("[ForgotPassword] Reset URL:", resetUrl);
 
     const message = `You requested a password reset. Please make a PUT request to: \n\n ${resetUrl}`;
 
@@ -159,40 +171,43 @@ const forgotPassword = async (req, res) => {
 
 // Reset Password
 const resetPassword = async (req, res) => {
-  const { token } = req.params;
+  // Decode token in case it was URL-encoded
+  const rawToken = req.params.token;
+  const token = decodeURIComponent(rawToken);
   const { password } = req.body;
+
+  console.log("[ResetPassword] Raw token from URL:", rawToken);
+  console.log("[ResetPassword] Decoded token:", token);
 
   if (!password) return res.status(400).json({ message: "New password is required." });
 
   try {
     const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    console.log("[ResetPassword] Computed hash:", resetTokenHash);
 
     const userResult = await pool.query(
-      "SELECT * FROM users WHERE reset_password_token = $1",
+      "SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
       [resetTokenHash]
     );
 
+    console.log("[ResetPassword] Users found:", userResult.rows.length);
+
     if (userResult.rows.length === 0) {
-      return res.status(400).json({ message: "Invalid token. The token hash did not match any user in the database." });
+      // Extra debug — check if token exists but expired
+      const anyUser = await pool.query(
+        "SELECT id, reset_password_expires FROM users WHERE reset_password_token = $1",
+        [resetTokenHash]
+      );
+      if (anyUser.rows.length > 0) {
+        return res.status(400).json({ 
+          message: "Token has expired. Please request a new password reset.",
+          expiredAt: anyUser.rows[0].reset_password_expires
+        });
+      }
+      return res.status(400).json({ message: "Invalid or expired token. Please request a new password reset." });
     }
 
     const user = userResult.rows[0];
-
-    // Now check if it's expired
-    const expiredCheck = await pool.query(
-      "SELECT * FROM users WHERE id = $1 AND reset_password_expires > NOW()",
-      [user.id]
-    );
-
-    if (expiredCheck.rows.length === 0) {
-      return res.status(400).json({ 
-        message: "Token has expired.", 
-        details: { 
-          currentTime: new Date().toISOString(), 
-          expiryTime: user.reset_password_expires 
-        }
-      });
-    }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
